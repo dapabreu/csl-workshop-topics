@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSL Research Topic Selector - Student Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-30">
+        <div class="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold shadow-md">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                </div>
+                <h1 class="text-xl font-bold text-slate-800 tracking-tight">CSL Research Topic Selector - Student Portal</h1>
+            </div>
+            <div id="user-info" class="hidden items-center gap-3 text-sm font-medium text-slate-600">
+                <span id="display-name" class="px-3 py-1 bg-slate-100 rounded-full border border-slate-200 shadow-sm"></span>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow flex flex-col items-center p-4 sm:p-8 relative max-w-4xl mx-auto w-full">
+        
+        <!-- Loading Screen -->
+        <div id="loading-screen" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 z-20 fade-in">
+            <div class="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+            <p class="text-slate-500 font-medium animate-pulse">Connecting to session...</p>
+        </div>
+
+        <!-- Name Entry Screen -->
+        <div id="name-screen" class="hidden absolute inset-0 flex items-center justify-center bg-slate-50 z-10 p-4 fade-in">
+            <div class="glass-panel p-8 rounded-2xl shadow-xl w-full max-w-md text-center border border-slate-200">
+                <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-800 mb-2">Student Portal</h2>
+                <p class="text-slate-500 mb-6 text-sm">Enter your full name and team # to view and claim your topic.</p>
+                <form id="name-form" class="flex flex-col gap-4">
+                    <input type="text" id="name-input" placeholder="e.g., Jane Doe (Team #1)" required class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm">
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition-all shadow-md active:scale-[0.98]">
+                        Enter Session
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Dashboard Screen -->
+        <div id="dashboard-screen" class="hidden w-full flex-col gap-6 fade-in">
+            
+            <!-- Stats Header -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap gap-4 items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800">Available Research Topics</h2>
+                    <p class="text-sm text-slate-500">First come, first served. Review the list carefully.</p>
+                </div>
+                <div class="flex gap-4">
+                    <div class="flex flex-col items-center px-4 py-2 bg-slate-50 rounded-lg border border-slate-100">
+                        <span class="text-xs text-slate-500 uppercase font-semibold">Available</span>
+                        <span id="stat-available" class="text-lg font-bold text-emerald-600">0</span>
+                    </div>
+                    <div class="flex flex-col items-center px-4 py-2 bg-slate-50 rounded-lg border border-slate-100">
+                        <span class="text-xs text-slate-500 uppercase font-semibold">Claimed</span>
+                        <span id="stat-claimed" class="text-lg font-bold text-slate-600">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Topic List Section -->
+            <div class="flex flex-col gap-4">
+                <div class="flex items-center justify-between px-1">
+                    <h3 class="font-semibold text-slate-700">Research Topic Pool</h3>
+                    <div class="flex gap-2 bg-slate-100 p-1 rounded-lg border border-slate-200">
+                        <button id="filter-all" class="text-xs font-semibold px-3 py-1.5 rounded-md bg-white text-slate-800 shadow-sm transition-all">All</button>
+                        <button id="filter-available" class="text-xs font-semibold px-3 py-1.5 rounded-md text-slate-500 hover:text-slate-700 transition-all">Available Only</button>
+                    </div>
+                </div>
+                
+                <div id="empty-state" class="hidden flex-col items-center justify-center p-12 bg-white rounded-2xl border border-slate-200 border-dashed text-center">
+                    <div class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 mb-3">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+                    </div>
+                    <p class="text-slate-500 font-medium">No topics available yet.</p>
+                    <p class="text-slate-400 text-sm mt-1">Waiting for the administrator to add topics.</p>
+                </div>
+
+                <div id="topics-list" class="flex flex-col gap-3">
+                    <!-- Topics will be dynamically injected here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, updateDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global State
+        let db, auth;
+        let currentUser = null;
+        let userName = localStorage.getItem('ts_student_username') || '';
+        let allTopics = [];
+        let currentFilter = 'all'; // 'all' or 'available'
+        
+        // Configuration
+        const appId = 'topic-selector-app'; // Used for strict firestore paths
+        const firebaseConfig = {
+          apiKey: "AIzaSyAw6Du4fpPI8gbkJth7PwfcylyJXIU0c80",
+          authDomain: "cls-topic-selector.firebaseapp.com",
+          projectId: "cls-topic-selector",
+          storageBucket: "cls-topic-selector.firebasestorage.app",
+          messagingSenderId: "364142564972",
+          appId: "1:364142564972:web:a133d3757d655f9cf5aa49"
+        };
+
+        // DOM Elements
+        const loadingScreen = document.getElementById('loading-screen');
+        const nameScreen = document.getElementById('name-screen');
+        const dashboardScreen = document.getElementById('dashboard-screen');
+        const nameForm = document.getElementById('name-form');
+        const nameInput = document.getElementById('name-input');
+        const userInfo = document.getElementById('user-info');
+        const displayName = document.getElementById('display-name');
+        
+        const topicsList = document.getElementById('topics-list');
+        const emptyState = document.getElementById('empty-state');
+        
+        const statAvailable = document.getElementById('stat-available');
+        const statClaimed = document.getElementById('stat-claimed');
+
+        const filterAllBtn = document.getElementById('filter-all');
+        const filterAvailableBtn = document.getElementById('filter-available');
+        const toastContainer = document.getElementById('toast-container');
+
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            const bg = type === 'success' ? 'bg-emerald-500' : (type === 'error' ? 'bg-red-500' : 'bg-slate-800');
+            toast.className = `${bg} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 transform transition-all duration-300 translate-y-[-100%] opacity-0 pointer-events-auto`;
+            
+            const icon = type === 'success' 
+                ? '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>'
+                : '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+            
+            toast.innerHTML = `${icon}<span class="text-sm font-medium">${message}</span>`;
+            toastContainer.appendChild(toast);
+            
+            requestAnimationFrame(() => toast.classList.remove('translate-y-[-100%]', 'opacity-0'));
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-[-100%]', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function updateUIState() {
+            if (!currentUser) {
+                loadingScreen.classList.remove('hidden');
+                nameScreen.classList.add('hidden');
+                dashboardScreen.classList.add('hidden');
+            } else if (!userName) {
+                loadingScreen.classList.add('hidden');
+                nameScreen.classList.remove('hidden');
+                dashboardScreen.classList.add('hidden');
+                nameInput.focus();
+            } else {
+                loadingScreen.classList.add('hidden');
+                nameScreen.classList.add('hidden');
+                dashboardScreen.classList.remove('hidden');
+                dashboardScreen.classList.add('flex');
+                userInfo.classList.remove('hidden');
+                userInfo.classList.add('flex');
+                displayName.textContent = userName;
+                renderTopics();
+            }
+        }
+
+        function renderTopics() {
+            if (!userName) return;
+
+            let displayTopics = [...allTopics];
+            
+            // Local sort: newest first based on createdAt timestamp
+            displayTopics.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+            // Calculate stats
+            const total = allTopics.length;
+            const claimed = allTopics.filter(t => t.claimedByUid).length;
+            const available = total - claimed;
+            
+            statAvailable.textContent = available;
+            statClaimed.textContent = claimed;
+
+            // Apply filter
+            if (currentFilter === 'available') {
+                displayTopics = displayTopics.filter(t => !t.claimedByUid);
+            }
+
+            if (displayTopics.length === 0) {
+                emptyState.classList.remove('hidden');
+                emptyState.classList.add('flex');
+                topicsList.innerHTML = '';
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+                emptyState.classList.remove('flex');
+            }
+
+            topicsList.innerHTML = '';
+            
+            displayTopics.forEach(topic => {
+                const isClaimed = !!topic.claimedByUid;
+                const isClaimedByMe = isClaimed && topic.claimedByUid === currentUser.uid;
+                
+                const card = document.createElement('div');
+                card.className = `p-4 rounded-xl border transition-all duration-200 flex items-center justify-between gap-4 
+                    ${isClaimed 
+                        ? (isClaimedByMe ? 'bg-indigo-50 border-indigo-200 opacity-90' : 'bg-slate-50 border-slate-200 opacity-60')
+                        : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-md'}`;
+                
+                const textContainer = document.createElement('div');
+                textContainer.className = 'flex-grow min-w-0';
+                
+                const titleText = document.createElement('p');
+                titleText.className = `font-medium truncate ${isClaimed && !isClaimedByMe ? 'line-through text-slate-500' : 'text-slate-800'}`;
+                titleText.title = topic.title;
+                titleText.textContent = topic.title;
+                
+                // Add optional description if the admin added one
+                if (topic.description) {
+                    const descText = document.createElement('p');
+                    descText.className = 'text-sm text-slate-500 truncate mt-1';
+                    descText.textContent = topic.description;
+                    textContainer.appendChild(titleText);
+                    textContainer.appendChild(descText);
+                } else {
+                    textContainer.appendChild(titleText);
+                }
+
+                const actionContainer = document.createElement('div');
+                actionContainer.className = 'flex-shrink-0 flex items-center gap-3';
+
+                if (isClaimed) {
+                    const badge = document.createElement('span');
+                    badge.className = `text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1.5
+                        ${isClaimedByMe ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200 text-slate-600'}`;
+                    
+                    const iconSvg = isClaimedByMe 
+                        ? '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>'
+                        : '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>';
+                    
+                    badge.innerHTML = `${iconSvg} ${isClaimedByMe ? 'Claimed by you' : 'Claimed by ' + topic.claimedByName}`;
+                    actionContainer.appendChild(badge);
+                } else {
+                    const claimBtn = document.createElement('button');
+                    claimBtn.className = 'bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2 rounded-lg transition-colors active:scale-95 shadow-sm';
+                    claimBtn.textContent = 'Claim Topic';
+                    claimBtn.onclick = () => claimTopic(topic.id);
+                    actionContainer.appendChild(claimBtn);
+                }
+
+                card.appendChild(textContainer);
+                card.appendChild(actionContainer);
+                topicsList.appendChild(card);
+            });
+        }
+
+        nameForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const val = nameInput.value.trim();
+            if (val) {
+                userName = val;
+                localStorage.setItem('ts_student_username', userName);
+                showToast(`Welcome, ${userName}!`);
+                updateUIState();
+            }
+        });
+
+        filterAllBtn.addEventListener('click', () => {
+            currentFilter = 'all';
+            filterAllBtn.className = 'text-xs font-semibold px-3 py-1.5 rounded-md bg-white text-slate-800 shadow-sm transition-all';
+            filterAvailableBtn.className = 'text-xs font-semibold px-3 py-1.5 rounded-md text-slate-500 hover:text-slate-700 transition-all';
+            renderTopics();
+        });
+
+        filterAvailableBtn.addEventListener('click', () => {
+            currentFilter = 'available';
+            filterAvailableBtn.className = 'text-xs font-semibold px-3 py-1.5 rounded-md bg-white text-slate-800 shadow-sm transition-all';
+            filterAllBtn.className = 'text-xs font-semibold px-3 py-1.5 rounded-md text-slate-500 hover:text-slate-700 transition-all';
+            renderTopics();
+        });
+
+        async function claimTopic(topicId) {
+            if (!currentUser || !userName) return;
+            
+            // Check if user already claimed a topic (optional enforcement rule, but good practice)
+            const alreadyClaimed = allTopics.find(t => t.claimedByUid === currentUser.uid);
+            if (alreadyClaimed) {
+                showToast('You have already claimed a topic!', 'error');
+                return;
+            }
+
+            const topic = allTopics.find(t => t.id === topicId);
+            if (!topic || topic.claimedByUid) {
+                showToast('Oops, this topic was already claimed!', 'error');
+                return;
+            }
+
+            try {
+                const topicRef = doc(db, 'artifacts', appId, 'public', 'data', 'topics', topicId);
+                await updateDoc(topicRef, {
+                    claimedByUid: currentUser.uid,
+                    claimedByName: userName,
+                    claimedAt: Date.now()
+                });
+                showToast('Topic claimed successfully!');
+            } catch (err) {
+                console.error("Error claiming topic: ", err);
+                showToast('Could not claim topic. Someone might have been faster!', 'error');
+            }
+        }
+
+        function setupRealtimeListener() {
+            // Strict public data path rule applied
+            const topicsRef = collection(db, 'artifacts', appId, 'public', 'data', 'topics');
+            
+            onSnapshot(topicsRef, (snapshot) => {
+                const topics = [];
+                snapshot.forEach((doc) => {
+                    topics.push({ id: doc.id, ...doc.data() });
+                });
+                allTopics = topics;
+                renderTopics();
+            }, (error) => {
+                console.error("Real-time sync error: ", error);
+                showToast("Connection lost. Retrying...", "error");
+            });
+        }
+
+        async function init() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Authenticate anonymously
+                await signInAnonymously(auth);
+                currentUser = auth.currentUser;
+                
+                setupRealtimeListener();
+                updateUIState();
+
+            } catch (err) {
+                console.error("Initialization error: ", err);
+                loadingScreen.innerHTML = `
+                    <div class="text-center p-6 glass-panel rounded-xl max-w-sm">
+                        <h2 class="text-xl font-bold text-red-600 mb-2">Connection Failed</h2>
+                        <p class="text-slate-600 text-sm">Failed to connect to the session. Please check your network and try again.</p>
+                    </div>`;
+            }
+        }
+
+        // Boot
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
