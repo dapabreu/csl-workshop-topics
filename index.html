@@ -245,14 +245,14 @@
                 textContainer.className = 'flex-grow min-w-0';
                 
                 const titleText = document.createElement('p');
-                titleText.className = `font-medium truncate ${isClaimed && !isClaimedByMe ? 'line-through text-slate-500' : 'text-slate-800'}`;
+                titleText.className = `font-medium break-words whitespace-normal leading-relaxed ${isClaimed && !isClaimedByMe ? 'line-through text-slate-500' : 'text-slate-800'}`;
                 titleText.title = topic.title;
                 titleText.textContent = topic.title;
                 
                 // Add optional description if the admin added one
                 if (topic.description) {
                     const descText = document.createElement('p');
-                    descText.className = 'text-sm text-slate-500 truncate mt-1';
+                    descText.className = 'text-sm text-slate-500 break-words whitespace-normal mt-1';
                     descText.textContent = topic.description;
                     textContainer.appendChild(titleText);
                     textContainer.appendChild(descText);
